@@ -1,10 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Wed Apr  1 23:48:00 2026
-
-@author: yusuk
-"""
-
 import numpy as np
 import pandas as pd
 import statsmodels.api as sm
@@ -28,13 +21,27 @@ df = pd.DataFrame({'X':x, 'Y':y, 'Z1':z1, 'Z2':z2, 'Z3':z3, 'Z4':z4, 'Z5':z5, 'Z
 # 2. BICによる全モデル探索
 candidates = ['X', 'Z1', 'Z2', 'Z3', 'Z4', 'Z5', 'Z6']
 results = []
+
 for k in range(1, len(candidates) + 1):
     for combo in combinations(candidates, k):
-        m = sm.OLS(df['Y'], sm.add_constant(df[list(combo)])).fit()
-        results.append({'vars': combo, 'bic': m.bic, 'x_coef': m.params.get('X', np.nan)})
+        # モデルのフィッティング
+        X_data = df[list(combo)]
+        m = sm.OLS(df['Y'], X_data).fit()
+        
+        res = {'vars': combo, 'bic': m.bic}
+        
+        # 全ての回帰係数を辞書形式で追加
+        res.update(m.params.to_dict())
+        
+        results.append(res)
 
+# 結果をDataFrameに変換
 res_df = pd.DataFrame(results)
+
+# BICが最小のモデルを抽出
 best_bic = res_df.loc[res_df['bic'].idxmin()]
 
 print(f"BIC最善モデルの変数: {best_bic['vars']}")
-print(f"その時のXの係数: {best_bic['x_coef']:.4f}")
+print("【BIC最善モデルの全係数】")
+coeffs = best_bic.drop(['vars', 'bic']).dropna()
+print(coeffs)
